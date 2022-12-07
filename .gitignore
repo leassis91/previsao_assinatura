@@ -3,12 +3,15 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+<<<<<<< HEAD
 *.ppt
 *.pptx
 *.db
 *.pkl
 __pycache__
 
+=======
+>>>>>>> c75376da83253070bb5cd16975ad4ac41260e08b
 # C extensions
 *.so
 
