@@ -1,4 +1,4 @@
-# previsao_assinatura
+# Previsão de Assinaturas da Plataforma Gamers Club
 
 ## Dados
 
