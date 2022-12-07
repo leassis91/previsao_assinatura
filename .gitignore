@@ -3,6 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+*.ppt
+*.pptx
+*.db
+*.pkl
+__pycache__
+
 # C extensions
 *.so
 
