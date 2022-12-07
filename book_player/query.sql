@@ -1,3 +1,4 @@
+
 with tb_lobby AS (
 
     SELECT *
@@ -143,6 +144,8 @@ tb_book_medal as (
     GROUP BY idPlayer
 
 )
+
+INSERT INTO tb_book_players_leassis
 
 SELECT '{date}' as dtRef,
        t1.*,
