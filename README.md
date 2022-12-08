@@ -13,3 +13,8 @@ Para ter uma melhor descrição destes dados, confira na [página oficial do Kag
 Abaixo temos o schema (relacionamento) dos nossos dados.
 
 <img src="https://user-images.githubusercontent.com/4283625/157664295-45b60786-92a4-478d-a044-478cdc6261d7.jpg" alt="" width="500">
+
+
+## Rascunho
+
+Caso sua equipe de marketing tente direcionar um mailing para qualquer tipo de pessoa, sem qualquer tipo de segmentação, sua equipe teria uma conversão de apenas 6% (baseline, df[target].mean() ). A partir do uso do modelo, podemos segmentarmos as primeiras 1.000 pessoas mais propensas a realizar uma assinatura. 
