@@ -1,19 +1,35 @@
 # %%
 
+# Standard Libraries
+from types import MethodWrapperType
 import pandas as pd
 import sqlalchemy
 import matplotlib.pyplot as plt
+import seaborn as sns
 
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble        import RandomForestClassifier
+
+# Metric Libraries
+from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
 from sklearn.pipeline        import Pipeline
 from sklearn                 import metrics
 
+# Model Libraries
+from sklearn.ensemble        import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.tree            import DecisionTreeClassifier, ExtraTreeClassifier
+from sklearn.linear_model    import LogisticRegressionCV
+
+
+
+# Preprocessing Libraries
 from feature_engine import imputation
 from feature_engine import encoding
-
 import scikitplot as skplt
 
+
+# FORMAT AND WARNINGS
+import warnings
+warnings.filterwarnings('ignore')
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.float_format', lambda x: '%.5f' % x)
@@ -75,26 +91,93 @@ onehot = encoding.OneHotEncoder(drop_last=True, variables=cat_features)
 # %%
 ## 4. MODEL
 
-model = RandomForestClassifier(n_estimators=200, 
+rf_clf = RandomForestClassifier(n_estimators=200, 
                                min_samples_leaf=20,
-                               n_jobs=-1)
+                               random_state=42)
+
+# ada_clf = AdaBoostClassifier(n_estimators=200,
+#                              learning_rate=0.8,
+#                              random_state=42)
+
+# dt_clf = DecisionTreeClassifier(max_depth=15,
+#                                 min_samples_leaf=20,
+#                                 random_state=42)
+
+# lr_clf = LogisticRegressionCV(cv=4, n_jobs=-1)
 
 
 ### 4.1 Definindo uma pipeline
 
-model_pipe = Pipeline(steps=[('Inputers', imput_1),
+params = {"n_estimators": [200, 300, 500],
+          "min_samples_leaf": [5, 10, 20, 30]
+            }
+
+gs = GridSearchCV(rf_clf, 
+                  params,
+                  cv=4,
+                  n_jobs=-1, 
+                  scoring='roc_auc',
+                  verbose=2,
+                  refit=True)
+
+pipe_rf = Pipeline(steps=[('Inputers', imput_1),
                              ('Encoders', onehot),
-                             ('Model', model)
-                                 ])
+                             ('Model', gs)])
+
+pipe_rf.fit(X_train, y_train)
+
+cv_results = pd.DataFrame(gs.cv_results_).sort_values(by='rank_test_score')
+# cv_results
+# gs.best_params_
+
+### Retiramos as pipelines, pois vimos que o RF é o melhor e não faz mais sentido utilizá-los
+
+# pipe_ada = Pipeline(steps=[('Inputers', imput_1),
+#                              ('Encoders', onehot),
+#                              ('Model', ada_clf)])
+
+# pipe_dt = Pipeline(steps=[('Inputers', imput_1),
+#                              ('Encoders', onehot),
+#                              ('Model', dt_clf)])
+
+# pipe_lr = Pipeline(steps=[('Inputers', imput_1),
+#                              ('Encoders', onehot),
+#                              ('Model', lr_clf)])
+
+
+# models = {"Random Forest":pipe_rf,
+#           "AdaBoost":pipe_ada,
+#           "Decision Tree": pipe_dt,
+#           "Logistic Regression":pipe_lr}
+# %%
+
+def train_test_report(model, X_train, y_train, X_test, y_test, key_metric, is_prob=True):
+    model.fit(X_train, y_train)
+    pred = model.predict(X_test)
+    prob = model.predict_proba(X_test)
+    
+    metric_result = key_metric(y_test, prob[:, 1]) if is_prob else key_metric(y_test, pred)
+    return metric_result
+
+
+
 
 # %%
 
-model_pipe.fit(X_train, y_train)
+gs.best_params_
+
+## qual modelo tem mais acurácia
+
+# for d, m in models.items():
+#     result = train_test_report(m, X_train, y_train, X_test, y_test, metrics.roc_auc_score)
+#     print(f"{d}: {result}")
+    
 
 # %%
+## 5. Assess
 
-y_train_pred = model_pipe.predict(X_train)
-y_train_prob = model_pipe.predict_proba(X_train)
+y_train_pred = pipe_rf.predict(X_train)
+y_train_prob = pipe_rf.predict_proba(X_train)
 
 acc_train = round(100*metrics.accuracy_score(y_train, y_train_pred),2)
 roc_train = metrics.roc_auc_score(y_train, y_train_prob[:, 1])
@@ -102,14 +185,13 @@ print("acc_train: ", acc_train)
 print("roc_train: ", roc_train)
 
 # %%
-## 5. Assess
 
 print("Baseline Treino: ", round(100*(1-y_train.mean()), 2))
 print("Acurácia Treino: ", round(acc_train, 2))
 # %%
 
-y_test_pred = model_pipe.predict(X_test)
-y_test_prob = model_pipe.predict_proba(X_test)
+y_test_pred = pipe_rf.predict(X_test)
+y_test_prob = pipe_rf.predict_proba(X_test)
 
 acc_test = round(100*metrics.accuracy_score(y_test, y_test_pred), 2)
 roc_test = metrics.roc_auc_score(y_test, y_test_prob[:, 1])
@@ -133,14 +215,74 @@ plt.show()
 skplt.metrics.plot_precision_recall(y_test, y_test_prob)
 plt.show()
 # %%
+# AS CURVAS DE NEGÓCIO!
 
+# PORCENTAGEM DA AMOSTRA QUE MOSTRA O QUÃO MELHOR É QUE A BASELINE
 skplt.metrics.plot_lift_curve(y_test, y_test_prob)
 plt.show()
 
-# %%
-features_model = model_pipe[:-1].transform(X_train.head()).columns.tolist()
+# PORCENTAGEM DA AMOSTRA PARA ATINGIRMOS 100% DOS INTERESSADOS!
+skplt.metrics.plot_cumulative_gain(y_test, y_test_prob)
+plt.show()
 
-fs_importance = pd.DataFrame({"importance": model_pipe[-1].feature_importances_,
+# %%
+
+X_oot, y_oot = df_oot[features], df_oot[target]
+
+y_pred_oot = pipe_rf.predict(X_oot)
+y_prob_oot = pipe_rf.predict_proba(X_oot)
+
+acc_oot = metrics.accuracy_score(y_oot, y_pred_oot)
+roc_oot = metrics.roc_auc_score(y_oot, y_prob_oot[:, 1])
+print("acc_oot: ", acc_oot)
+print("roc_oot: ", roc_oot)
+
+print("Baseline oot: ", round(100*(1-y_oot.mean()), 2))
+print("Acurácia oot: ", round(acc_oot, 2))
+
+
+
+skplt.metrics.plot_lift_curve(y_oot, y_prob_oot)
+plt.show()
+
+
+skplt.metrics.plot_cumulative_gain(y_oot, y_prob_oot)
+plt.show()
+
+# %%
+
+# EXPLICANDO PRO GERENTE DE NEGÓCIOS
+
+## - Utilizando nosso modelo, temos o dobro de conversão em comparação a escolha aleatoria.
+df_oot['prob'] = y_prob_oot[:, 1]
+
+conv_model = df_oot.sort_values(by='prob', ascending=False) \
+        .head(1000) \
+        .mean()['prob']
+
+conv_random = df_oot.sort_values(by='prob', ascending=False) \
+      .mean()['prob']
+
+total_model = df_oot.sort_values(by='prob', ascending=False) \
+                    .head(1000) \
+                    .sum()['prob']
+
+total_sem = df_oot.sort_values(by='prob', ascending=False) \
+                  .sum()['prob']
+                  
+
+print(f"Utilizando o modelo, ou seja, abordando as primeiras 1000 pessoas mais propensas:\n {total_model} ({100*conv_model:.2f}%)")
+print(f"Sem segmentação, ou seja, tendo que ligar para toda a amostra de 2500 pessoas:\n {total_sem} ({100*conv_random:.2f}%)", )
+
+# ou seja diminuimos o CAC (Custo de Aquisição do Cliente)
+
+# Forma 1: Com nosso modelo, precisamos abordar apenas 40% do publico OU deixamos de abordar 60% dos clientes (1500 não interessados de 2518), para ter um ganho/convencer de 83% (117/140) do público potencial que podemos converter. 
+# Forma 2: Deixamos de abordar 60% do público para deixar de trazer apenas 17% potenciais clientes. Evitamos custos desnecessários. Marketing e comunicação muito mais acurado.
+
+# %%
+features_model = pipe_rf[:-1].transform(X_train.head()).columns.tolist()
+
+fs_importance = pd.DataFrame({"importance": pipe_rf[-1].feature_importances_,
                               "feature": features_model
                               })
 fs_importance.sort_values(by='importance', ascending=False).head(20)
