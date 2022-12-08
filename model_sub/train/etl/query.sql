@@ -63,27 +63,27 @@ SELECT
     t1.avgQtHitHeadshot,
     t1.avgQtHitChest,
     t1.avgQtHitStomach,
-    t1.avgQtHitLeftAtm,
+    t1.avgQtHitLeftArm,
     t1.avgQtHitRightArm,
     t1.avgQtHitLeftLeg,
     t1.avgQtHitRightLeg,
     t1.avgFlWinner,
-    t1.qtMiragePartida,
-    t1.qtMirageVitorias,
-    t1.qtNukePartida,
-    t1.qtNukeVitorias,
-    t1.qtInfernoPartida,
-    t1.qtInfernoVitorias,
-    t1.qtVertigoPartida,
-    t1.qtVertigoVitorias,
-    t1.qtAncientPartida,
-    t1.qtAncientVitorias,
-    t1.qtDust2Partida,
-    t1.qtDust2Vitorias,
-    t1.qtTrainPartida,
-    t1.qtTrainVitorias,
-    t1.qtOverpassPartida,
-    t1.qtOverpassVitorias,
+    t1.propMiragePartida,
+    t1.winRateMirage,
+    t1.propNukePartida,
+    t1.winRateNuke,
+    t1.propInfernoPartida,
+    t1.winRateInferno,
+    t1.propVertigoPartida,
+    t1.winRateVertigo,
+    t1.propAncientPartida,
+    t1.winRateAncient,
+    t1.propDust2Partida,
+    t1.winRateDust2,
+    t1.propTrainPartida,
+    t1.winRateTrain,
+    t1.propOverpassPartida,
+    t1.winRateOverpass,
     t1.vlLevelAtual,
     t1.qtMedalhaDistinta,
     t1.qtMedalhaAdquiridas,
@@ -99,11 +99,13 @@ SELECT
 
 
 from tb_book_players_leassis as t1
-left join tb_subs as t2
+left join tb_subs as t2 on t1.idPlayer = t2.idPlayer
 
-on t1.idPlayer = t2.idPlayer
+
 and t1.dtRef < t2.dtCreatedAt
 and t2.dtCreatedAt < date(t1.dtRef, '+15 days')
 
+
 where AssinaturaAtiva = 0
+and t1.dtRef < date('2022-02-01', '-15 days')
 ;
