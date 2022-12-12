@@ -1,4 +1,4 @@
-# Previsão de Assinaturas da Plataforma Gamers Club
+<h1 align='center'> Previsão de Assinaturas da Plataforma Gamers Club</h1>
 
 <div align='center'>
 
